@@ -1,0 +1,59 @@
+#define TOUCH_THRESHOLD 50 
+//in my attempts with a standart jumper threshold value: 40-50 was optimal.
+#define LONG_CLICK_THRESHOLD 475
+#define SINGLE_CLICK_THRESHOLD 200
+#define TOUCH_DELAY 50
+const long LONG_CLICK_THRESHOLD_TIMES = LONG_CLICK_THRESHOLD / TOUCH_DELAY;
+long touchCounter = 0;
+bool isTouched = false;
+#define LONG_TIMES = 1
+
+int touchValue = 0; //initialized
+
+//You can download the library from the link below.
+//https://github.com/T-vK/ESP32-BLE-Keyboard
+#include <BleKeyboard.h>
+BleKeyboard bleKeyboard("SAM MEDIA HUB", "Sam", 13);
+#define USE_NIMBLE // for less memory usage and faster flashing
+
+void setup() {
+  Serial.begin(115200);
+  Serial.println("Here we go!..");
+  bleKeyboard.begin();
+}
+
+//optional
+void doItXtimes(int times, const MediaKeyReport PROMPT) { for(int i=0; i<times; i++) bleKeyboard.write(PROMPT);}
+
+void assignTouchEvent(uint8_t PIN, const uint8_t SINGLE_PROMPT, const MediaKeyReport LONG_PROMPT) {
+  
+  touchValue = touchRead(PIN); 
+  Serial.println(touchValue); //for better trace you better comment the print statement after testing.
+
+  if (touchValue < TOUCH_THRESHOLD) isTouched = true;
+  else                              {isTouched= false;}
+
+  if(isTouched) {
+      touchCounter++;
+      if(touchCounter > LONG_CLICK_THRESHOLD_TIMES){
+        Serial.println("Long Click");
+        touchCounter = 0;
+        doItXtimes(LONG_TIMES, LONG_PROMPT);
+        delay(LONG_CLICK_THRESHOLD);
+      }
+  } else {
+  if(touchCounter < LONG_CLICK_THRESHOLD_TIMES && touchCounter > 0) {
+    Serial.println("Single Click");
+    bleKeyboard.write(SINGLE_PROMPT);
+    delay(TOUCH_DELAY);
+    }
+  touchCounter = 0;
+  }
+}
+
+void loop() {
+assignTouchEvent(T5, KEY_RIGHT_ARROW, KEY_MEDIA_PLAY_PAUSE);
+//ESP 32 Cam touch pins -> T0-T6
+  delay(TOUCH_DELAY);
+}
+
